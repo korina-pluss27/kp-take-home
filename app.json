@@ -1,0 +1,12 @@
+{
+  "name": "mobile-take-home",
+  "displayName": "mobile-take-home",
+  "expo": {
+    "name": "mobile-take-home",
+    "slug": "mobile-take-home",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
