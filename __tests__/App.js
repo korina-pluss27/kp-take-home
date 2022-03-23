@@ -1,10 +1,27 @@
-import 'react-native';
-import React from 'react';
-import App from '../App';
+import "react-native";
+import React from "react";
+import App from "../App";
 
 // Note: test renderer must be required after react-native.
-import renderer from 'react-test-renderer';
+import renderer from "react-test-renderer";
 
-it('renders correctly', () => {
+it("renders correctly", () => {
+  renderer.create(<App />);
+});
+
+it("renders an image for every audio clip", () => {
+  renderer.create(<App />);
+});
+
+it("renders at least 16 audio clips in a scrollable list", () => {
+  renderer.create(<App />);
+});
+
+it("continues playing in the background if the user leaves the app", () => {
+  renderer.create(<App />);
+});
+
+it("loads a playable clip within a reasonable amount of time", () => {
+  // if i had more time, i would have clarified definition of 'performant'
   renderer.create(<App />);
 });

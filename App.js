@@ -1,5 +1,5 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, Text, View, FlatList, Image, Button } from "react-native";
 import { Audio } from "expo-av";
 
@@ -25,32 +25,32 @@ const trackData = [
   new Track(7, "https://img.icons8.com/cute-clipart/452/cactus.png"),
   new Track(8, "https://img.icons8.com/cute-clipart/452/tomato.png"),
   new Track(9, "https://img.icons8.com/cute-clipart/452/corn.png"),
-  // new Track(10, "https://img.icons8.com/cute-clipart/452/carrot.png"),
-  // new Track(11, "https://img.icons8.com/cute-clipart/452/plum.png"),
-  // new Track(12, "https://img.icons8.com/cute-clipart/452/cherry.png"),
-  // new Track(13, "https://img.icons8.com/cute-clipart/452/grapes.png"),
-  // new Track(14, "https://img.icons8.com/cute-clipart/452/raspberry.png"),
-  // new Track(15, "https://img.icons8.com/cute-clipart/452/strawberry.png"),
-  // new Track(16, "https://img.icons8.com/cute-clipart/344/kiwi.png"),
+  new Track(10, "https://img.icons8.com/cute-clipart/452/carrot.png"),
+  new Track(11, "https://img.icons8.com/cute-clipart/452/plum.png"),
+  new Track(12, "https://img.icons8.com/cute-clipart/452/cherry.png"),
+  new Track(13, "https://img.icons8.com/cute-clipart/452/grapes.png"),
+  new Track(14, "https://img.icons8.com/cute-clipart/452/raspberry.png"),
+  new Track(15, "https://img.icons8.com/cute-clipart/452/strawberry.png"),
+  new Track(16, "https://img.icons8.com/cute-clipart/344/kiwi.png"),
 ];
 
-const AudioClip = ({ track, setCurrentlyPlaying, isPlaying, setPlaying }) => {
+const AudioClip = ({
+  track,
+  currentSound,
+  setCurrentlyPlaying,
+  isPlaying,
+  setPlaying,
+}) => {
   const [loading, setLoading] = useState(true);
   const _onPlaybackStatusUpdate = (playbackStatus) => {
     if (playbackStatus.error) {
-      console.log(
-        `Encountered a fatal error during playback: ${playbackStatus.error}`
-      );
+      console.log(`Error during playback: ${playbackStatus.error}`);
     }
     if (!playbackStatus.isLoaded) {
-      console.log("loading.....");
       if (playbackStatus.error) {
-        console.log(
-          `Encountered a fatal error during playback: ${playbackStatus.error}`
-        );
+        console.log(`Error during playback: ${playbackStatus.error}`);
       }
     } else {
-      console.log(`loaded track ${track.title}`);
       setLoading(false);
       if (playbackStatus.isPlaying) {
         setPlaying(true);
@@ -97,13 +97,15 @@ const AudioClip = ({ track, setCurrentlyPlaying, isPlaying, setPlaying }) => {
       <Text>{track.title}</Text>
       <View style={{ alignSelf: "flex-end" }}>
         <Button
-          title="play"
-          accessibilityLabel={`Play ${track.title}`}
+          title={loading ? "loading..." : "play"}
+          disabled={loading}
+          accessibilityLabel={`play ${track.title}`}
           onPress={async () => {
-            if (!loading) {
-              setCurrentlyPlaying(track);
-              await track.sound.playAsync();
+            if (currentSound.sound) {
+              await currentSound.sound.stopAsync();
             }
+            setCurrentlyPlaying(track);
+            await track.sound.playAsync();
           }}
         />
       </View>
@@ -111,12 +113,12 @@ const AudioClip = ({ track, setCurrentlyPlaying, isPlaying, setPlaying }) => {
   );
 };
 
-const AudioControls = ({ currentSound, isPlaying, setPlaying }) => {
+const AudioControls = ({ currentSound, isPlaying }) => {
   return (
-    <View>
+    <View style={{ flex: 1, alignItems: "center" }}>
       <Text>{currentSound.title}</Text>
       <Button
-        title="play/pause"
+        title={isPlaying ? "pause" : "play"}
         onPress={async () => {
           if (isPlaying) {
             await currentSound.sound.pauseAsync();
@@ -130,19 +132,19 @@ const AudioControls = ({ currentSound, isPlaying, setPlaying }) => {
 };
 
 export default App = () => {
-  const trackPosition = useRef(0);
   const [isPlaying, setPlaying] = useState(false);
   const [currentSound, setCurrentlyPlaying] = useState(trackData[0]);
+  // TODO - seek +/-30s
 
   useEffect(() => {
     (async () =>
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
         staysActiveInBackground: true,
-        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DUCK_OTHERS,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
         playsInSilentModeIOS: true,
         shouldDuckAndroid: true,
-        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
         playThroughEarpieceAndroid: false,
       }))();
   }, []);
@@ -158,6 +160,7 @@ export default App = () => {
           renderItem={({ item }) => (
             <AudioClip
               track={item}
+              currentSound={currentSound}
               setCurrentlyPlaying={setCurrentlyPlaying}
               setPlaying={setPlaying}
               isPlaying={isPlaying}
@@ -166,12 +169,7 @@ export default App = () => {
         />
       </View>
       <View style={styles.footer}>
-        <AudioControls
-          currentSound={currentSound}
-          isPlaying={isPlaying}
-          setPlaying={setPlaying}
-          trackPosition={trackPosition}
-        />
+        <AudioControls currentSound={currentSound} isPlaying={isPlaying} />
       </View>
       <StatusBar style="auto" />
     </View>
