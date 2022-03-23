@@ -1,9 +1,10 @@
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, Text, View, FlatList, Image, Button } from "react-native";
 import { Audio } from "expo-av";
 
 const AUDIO_BASE_URL = "https://www.soundhelix.com/examples/mp3";
+const IMAGE_BASE_URL = "https://img.icons8.com/cute-clipart";
 
 class Track {
   constructor(id, image) {
@@ -16,26 +17,28 @@ class Track {
 }
 
 const trackData = [
-  new Track(1, "https://img.icons8.com/cute-clipart/452/apple.png"),
-  new Track(2, "https://img.icons8.com/cute-clipart/452/banana.png"),
-  new Track(3, "https://img.icons8.com/cute-clipart/452/citrus-1.png"),
-  new Track(4, "https://img.icons8.com/cute-clipart/452/pineapple.png"),
-  new Track(5, "https://img.icons8.com/cute-clipart/452/orange.png"),
-  new Track(6, "https://img.icons8.com/cute-clipart/452/pear.png"),
-  new Track(7, "https://img.icons8.com/cute-clipart/452/cactus.png"),
-  new Track(8, "https://img.icons8.com/cute-clipart/452/tomato.png"),
-  new Track(9, "https://img.icons8.com/cute-clipart/452/corn.png"),
-  new Track(10, "https://img.icons8.com/cute-clipart/452/carrot.png"),
-  new Track(11, "https://img.icons8.com/cute-clipart/452/plum.png"),
-  new Track(12, "https://img.icons8.com/cute-clipart/452/cherry.png"),
-  new Track(13, "https://img.icons8.com/cute-clipart/452/grapes.png"),
-  new Track(14, "https://img.icons8.com/cute-clipart/452/raspberry.png"),
-  new Track(15, "https://img.icons8.com/cute-clipart/452/strawberry.png"),
-  new Track(16, "https://img.icons8.com/cute-clipart/344/kiwi.png"),
+  new Track(1, `${IMAGE_BASE_URL}/452/apple.png`),
+  new Track(2, `${IMAGE_BASE_URL}/452/banana.png`),
+  new Track(3, `${IMAGE_BASE_URL}/452/citrus-1.png`),
+  new Track(4, `${IMAGE_BASE_URL}/452/pineapple.png`),
+  new Track(5, `${IMAGE_BASE_URL}/452/orange.png`),
+  new Track(6, `${IMAGE_BASE_URL}/452/pear.png`),
+  new Track(7, `${IMAGE_BASE_URL}/452/cactus.png`),
+  new Track(8, `${IMAGE_BASE_URL}/452/tomato.png`),
+  new Track(9, `${IMAGE_BASE_URL}/452/corn.png`),
+  new Track(10, `${IMAGE_BASE_URL}/452/carrot.png`),
+  new Track(11, `${IMAGE_BASE_URL}/452/plum.png`),
+  new Track(12, `${IMAGE_BASE_URL}/452/cherry.png`),
+  new Track(13, `${IMAGE_BASE_URL}/452/grapes.png`),
+  new Track(14, `${IMAGE_BASE_URL}/452/raspberry.png`),
+  new Track(15, `${IMAGE_BASE_URL}/452/strawberry.png`),
+  new Track(16, `${IMAGE_BASE_URL}/344/kiwi.png`),
 ];
 
 const AudioClip = ({
   track,
+  trackPosition,
+  soundDuration,
   currentSound,
   setCurrentlyPlaying,
   isPlaying,
@@ -43,6 +46,10 @@ const AudioClip = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const _onPlaybackStatusUpdate = (playbackStatus) => {
+    // update refs to keep track of current position of the track, duration
+    trackPosition.current = playbackStatus.positionMillis;
+    soundDuration.current = playbackStatus.durationMillis;
+
     if (playbackStatus.error) {
       console.log(`Error during playback: ${playbackStatus.error}`);
     }
@@ -51,6 +58,7 @@ const AudioClip = ({
         console.log(`Error during playback: ${playbackStatus.error}`);
       }
     } else {
+      // use status returned from expo-av to update UI state elements
       setLoading(false);
       if (playbackStatus.isPlaying) {
         setPlaying(true);
@@ -113,28 +121,81 @@ const AudioClip = ({
   );
 };
 
-const AudioControls = ({ currentSound, isPlaying }) => {
+const SEEK_VALUE_MS = 30000;
+
+const AudioControls = ({
+  currentSound,
+  isPlaying,
+  trackPosition,
+  soundDuration,
+}) => {
+  const getFwdMs = () => {
+    return Math.min(
+      trackPosition.current + SEEK_VALUE_MS,
+      soundDuration.current
+    );
+  };
+
+  const getRevMs = () => {
+    return Math.max(trackPosition.current - SEEK_VALUE_MS, 0);
+  };
+
+  const seekTrack = async (positionInMs) => {
+    if (isPlaying) {
+      await currentSound.sound.playFromPositionAsync(positionInMs);
+    } else {
+      await currentSound.sound.setPositionAsync(positionInMs);
+    }
+  };
+
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
-      <Text>{currentSound.title}</Text>
-      <Button
-        title={isPlaying ? "pause" : "play"}
-        onPress={async () => {
-          if (isPlaying) {
-            await currentSound.sound.pauseAsync();
-          } else {
-            await currentSound.sound.playAsync();
-          }
+      <Text style={{ flex: 1, marginTop: 20 }}>{currentSound.title}</Text>
+      {/* if i had more time, i would display progress of the song here */}
+      <View
+        style={{
+          flex: 2,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          marginBottom: 20,
         }}
-      />
+      >
+        <Button
+          title="-30s"
+          onPress={async () => {
+            const millis = getRevMs();
+            await seekTrack(millis);
+          }}
+        />
+        <View style={{ marginHorizontal: 30 }}>
+          <Button
+            title={isPlaying ? "pause" : "play"}
+            onPress={async () => {
+              if (isPlaying) {
+                await currentSound.sound.pauseAsync();
+              } else {
+                await currentSound.sound.playAsync();
+              }
+            }}
+          />
+        </View>
+        <Button
+          title="+30s"
+          onPress={async () => {
+            const millis = getFwdMs();
+            await seekTrack(millis);
+          }}
+        />
+      </View>
     </View>
   );
 };
 
 export default App = () => {
+  const trackPosition = useRef(0);
+  const soundDuration = useRef(0);
   const [isPlaying, setPlaying] = useState(false);
   const [currentSound, setCurrentlyPlaying] = useState(trackData[0]);
-  // TODO - seek +/-30s
 
   useEffect(() => {
     (async () =>
@@ -160,6 +221,8 @@ export default App = () => {
           renderItem={({ item }) => (
             <AudioClip
               track={item}
+              trackPosition={trackPosition}
+              soundDuration={soundDuration}
               currentSound={currentSound}
               setCurrentlyPlaying={setCurrentlyPlaying}
               setPlaying={setPlaying}
@@ -169,7 +232,12 @@ export default App = () => {
         />
       </View>
       <View style={styles.footer}>
-        <AudioControls currentSound={currentSound} isPlaying={isPlaying} />
+        <AudioControls
+          currentSound={currentSound}
+          isPlaying={isPlaying}
+          trackPosition={trackPosition}
+          soundDuration={soundDuration}
+        />
       </View>
       <StatusBar style="auto" />
     </View>
@@ -188,7 +256,7 @@ const styles = StyleSheet.create({
   },
   content: {
     alignSelf: "stretch",
-    flex: 6,
+    flex: 5,
   },
   footer: {
     flex: 1,
