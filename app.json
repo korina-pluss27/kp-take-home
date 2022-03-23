@@ -5,8 +5,11 @@
     "name": "mobile-take-home",
     "slug": "mobile-take-home",
     "version": "1.0.0",
-    "assetBundlePatterns": [
-      "**/*"
-    ]
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    }
   }
 }
