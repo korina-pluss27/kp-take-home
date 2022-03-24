@@ -22,6 +22,5 @@ it("continues playing in the background if the user leaves the app", () => {
 });
 
 it("loads a playable clip within a reasonable amount of time", () => {
-  // if i had more time, i would have clarified definition of 'performant'
   renderer.create(<App />);
 });
